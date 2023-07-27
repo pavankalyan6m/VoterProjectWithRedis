@@ -5,7 +5,7 @@ import org.springframework.data.redis.repository.configuration.EnableRedisReposi
 import org.springframework.data.repository.CrudRepository;
 
 @EnableRedisRepositories
-public interface TokenRepository extends CrudRepository<String,Token> {
+public interface TokenRepository {
 
 //    List<Token> findAllValidTokenByUser(Integer id);
 
