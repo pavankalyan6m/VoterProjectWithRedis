@@ -44,7 +44,10 @@ public class SecurityFilterConfig {
 
         http.csrf(csrf -> csrf.disable())
                 .authorizeRequests()
-                .requestMatchers("/auth/rp1/**").permitAll() // Allow registration without authentication
+                .requestMatchers("/auth/rp1/**").permitAll()
+                .and()
+                .authorizeRequests()
+                .requestMatchers("/auth/rp1/login").hasAnyAuthority("ROLE_ADMIN")// Allow registration without authentication
                 .anyRequest().authenticated()
                 .and()
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

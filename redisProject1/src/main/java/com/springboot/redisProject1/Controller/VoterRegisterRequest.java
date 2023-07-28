@@ -1,5 +1,6 @@
 package com.springboot.redisProject1.Controller;
 
+import com.springboot.redisProject1.Entity.Role;
 import lombok.*;
 
 @Data
@@ -12,4 +13,5 @@ public class VoterRegisterRequest {
     private String email;
     private String password;
     private Integer voterAge;
+    private Role role;
 }

@@ -19,6 +19,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.servlet.handler.UserRoleAuthorizationInterceptor;
 
 import java.util.Collections;
 import java.util.List;
@@ -59,7 +60,7 @@ public class VoterService {
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
                 .voterAge((Integer) request.getVoterAge())
-                .role(Role.USER)
+                .role(request.getRole())
                 .build();
 
         var savedUser = redisVoterRepo.save(user);
@@ -70,27 +71,74 @@ public class VoterService {
                 .build();
     }
 
-    public VoterAuthenticationResponse voterDetailsAuthenticate(VoterAuthenticationRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                        request.getEmail(),
-                        request.getPassword()
-                )
-        );
+    public VoterAuthenticationResponse AdminVoterDetailsAuthenticate(VoterAuthenticationRequest request) {
+        VoterAuthenticationResponse response = null;
+        String authority_role  = redisVoterRepo.getRoleOfUser(request.getEmail());
+        System.out.println("Role fetched is: "+authority_role);
+        if (authority_role.equals("ADMIN")) {
+            System.out.println("User is an Admin.");
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+            var user = redisVoterRepo.findVoterByEmail(request.getEmail());
+            if (user == null) {
+                throw new UsernameNotFoundException("User not found");
+            } else {
+                System.out.println("User found: " + user);
+            }
+            var jwtToken = voterJwtService.generateToken(user);
 
-        var user = redisVoterRepo.findVoterByEmail(request.getEmail());
-        if (user == null) {
-            throw new UsernameNotFoundException("User not found");
+            response = VoterAuthenticationResponse.builder()
+                    .accessToken(jwtToken)
+                    .build();
         }
+       return response;
+    }
 
-        var jwtToken = voterJwtService.generateToken(user);
+    public VoterAuthenticationResponse UserVoterDetailsAuthenticate(VoterAuthenticationRequest request) {
+        VoterAuthenticationResponse response = null;
+        String authority_role  = redisVoterRepo.getRoleOfUser(request.getEmail());
+        System.out.println("Role fetched is: "+authority_role);
+        if (authority_role.equals("USER")) {
+            System.out.println("User is an Admin.");
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            request.getEmail(),
+                            request.getPassword()
+                    )
+            );
+            var user = redisVoterRepo.findVoterByEmail(request.getEmail());
+            if (user == null) {
+                throw new UsernameNotFoundException("User not found");
+            } else {
+                System.out.println("User found: " + user);
+            }
+            var jwtToken = voterJwtService.generateToken(user);
 
-        return VoterAuthenticationResponse.builder()
-                .accessToken(jwtToken)
-                .build();
+            response = VoterAuthenticationResponse.builder()
+                    .accessToken(jwtToken)
+                    .build();
+        }
+        return response;
     }
 
     private List<SimpleGrantedAuthority> getAuthorities(Role role) {
         return Collections.singletonList(new SimpleGrantedAuthority(role.toString()));
+    }
+
+    public List<Voter> findAll() {
+        return hashOperations.values(VOTER_KEY);
+    }
+
+    public Voter findVoterById(int id) {
+        return hashOperations.get(VOTER_KEY, String.valueOf(id));
+    }
+
+    public String deleteVoter(int id) {
+        hashOperations.delete(VOTER_KEY, String.valueOf(id));
+        return "Voter removed !!";
     }
 }
